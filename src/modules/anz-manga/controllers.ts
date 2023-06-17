@@ -61,10 +61,10 @@ export const findChaptersByName = async function (
     res: express.Response
   ): Promise<any> {
     try {
-      const search: any = req.query?.search
+      const name: any = req.query?.name
       const baseurl: any = req.get('host')
 
-      await getChaptersUrl(search, baseurl)
+      await getChaptersUrl(name, baseurl)
       .then((response: any) => {
         const suggestions: Response = response.data
         res.json({
@@ -101,7 +101,7 @@ export const findChapter = async function (
       let chapter: any = req.query?.chapter
 
       const requestChapters = await axios.get(
-        `${req.protocol}://${req.get('host')}/api/anzmanga/findChaptersByName?search=${name}`
+        `${req.protocol}://${req.get('host')}/api/anzmanga/findChaptersByName?name=${name}`
       )
 
       interface Chapter {
@@ -142,6 +142,60 @@ export const findChapter = async function (
       })
     }
 }
+
+export const downloadChapterPdf = async function (
+    req: express.Request,
+    res: express.Response
+  ): Promise<any> {
+    try {
+      const name: any = req.query?.name
+      let chapter: any = req.query?.chapter
+
+      const requestChapters = await axios.get(
+        `${req.protocol}://${req.get('host')}/api/anzmanga/findChaptersByName?name=${name}`
+      )
+
+      interface Chapter {
+        chapter: string;
+        url: string;
+      }
+      
+      const chapters: Chapter[] = requestChapters.data.responseData
+
+      const requestChapter: Chapter[] = chapters.filter(property => parseInt(property.chapter) == parseInt(chapter))
+      const lastedChapter: string = chapters[0].chapter
+
+      chapter = requestChapter[0].chapter
+      
+      interface ResponseFindChapter {
+        name: string;
+        search: string;
+        lastedChapter: string;
+        chapter: string;
+        images: string[];
+      }
+
+      const imagesByChapter: any = await findImagesByChapter(name, chapter, lastedChapter)
+      const urlImages: string[] = imagesByChapter?.images
+      
+      const doc = new PDFDocument();
+
+      await createPDFByBuffer(name, chapter, doc, urlImages)
+
+      res.attachment(`${name}-${chapter}.pdf`)
+      doc.pipe(res);
+      doc.end();
+
+      console.log('PDF file was successfully created');
+    } catch (error) {
+      res.json({
+        responseCode: 500,
+        responseMessage: error,
+        responseData: req.query
+      })
+    }
+}
+
 
 
 async function getChaptersUrl (search: string, baseurl: string) {
@@ -221,4 +275,76 @@ async function findImagesByChapter (name: string, chapter: string, lastedChapter
       }
     });
   });
+}
+async function createPDFByBuffer(name: string, chapter: string, doc: any, urlImages: string[]) {
+  try {
+
+    const images: any = [];
+
+    for (const url of urlImages) {
+      const JPEG = await downloadBufferImage(url, (urlImages.indexOf(url))+1);
+      images.push(JPEG);
+    }
+    
+    images.forEach((image: any) => {
+      if (image) {
+        doc.addPage({size: [image.width, image.height]});
+
+        const xPosition = (doc.page.width - image.width) / 2;
+        const yPosition = (doc.page.height - image.height) / 2;
+        
+        doc.image(image.data, xPosition, yPosition, {
+          width: image.width,
+          height: image.height,
+          align: 'center',
+          valign: 'center',
+          fit: [doc.page.width, doc.page.height],    
+        });
+        
+      } else {
+        console.error('Error: la imagen no se ha cargado correctamente');
+      }
+    });
+
+    return doc
+
+  } catch (error) {
+    console.error(error);
+  }
+}
+async function downloadBufferImage(url: string, iterator: number) {
+  const bufferStream = new PassThrough();
+
+  const response = await axios({
+    url,
+    method: 'GET',
+    responseType: 'stream'
+  });
+
+  const chunks: any = [];
+  response.data.on('data', (chunk: any) => chunks.push(chunk));
+  response.data.on('end', () => bufferStream.end(Buffer.concat(chunks)));
+  response.data.on('error', (err: any) => {
+    console.error(`Error al descargar la imagen: ${err.message}`);
+    bufferStream.emit('error', err)
+  });
+
+  const imageBuffer = await new Promise((resolve, reject) => {
+    bufferStream.pipe(sharp()).toBuffer((err: any, buffer: any, info: any) => {
+      if (err) reject(err);
+      else {
+        resolve({
+          data: buffer,
+          label: `I${iterator}`,
+          bits: 8,
+          height: info.height,
+          width: info.width,
+          colorSpace: 'DeviceRGB',
+          obj: null
+        });
+      }
+    });
+  });
+
+  return imageBuffer;
 }
