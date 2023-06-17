@@ -1,0 +1,31 @@
+{
+  "name": "manghwa",
+  "version": "1.0.0",
+  "description": "This API is designed to facilitate manga downloads from various services that offer manga views",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx ts-node src/index.ts",
+    "dev": "npx nodemon src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/express": "^4.17.17",
+    "adm-zip": "^0.5.10",
+    "axios": "^1.4.0",
+    "cheerio": "^1.0.0-rc.12",
+    "express": "^4.18.2",
+    "fs": "^0.0.1-security",
+    "pdfkit": "^0.13.0",
+    "request": "^2.88.2",
+    "sharp": "^0.32.1",
+    "stream": "^0.0.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
