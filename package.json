@@ -4,8 +4,10 @@
   "description": "This API is designed to facilitate manga downloads from various services that offer manga views",
   "main": "index.js",
   "scripts": {
-    "start": "npx ts-node src/index.ts",
-    "build": "tsc",
+    "start": "node dist/index.js",
+    "start-ts": "npx ts-node src/index.ts",
+    "copy-files": "copyfiles -u 1 src/**/*.json dist/",    
+    "build": "tsc && npm run copy-files",
     "dev": "npx nodemon src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -29,6 +31,7 @@
     "typescript": "^5.1.3"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "copyfiles": "^2.4.1"
   }
 }

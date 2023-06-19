@@ -470,7 +470,6 @@ async function getBufferImagesByUrl(urlImages: string[]) {
 
   for (const url of urlImages) {
     const JPEG = await downloadBufferImage(url, (urlImages.indexOf(url)) + 1);
-    console.log("get image buffer ..." + ((urlImages.indexOf(url)) + 1))
     images.push(JPEG);
   }
   return images;
